@@ -37,11 +37,11 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 5px;
 <section class="card">
 <div class="top"><div><div class="count"><span id="total">16</span><span class="small"> / 51</span></div><div class="small" id="remaining">35 remaining</div></div><div class="small" id="phaseLabel">Phase 2 in progress</div></div>
 <div class="progressBlock">
-<div class="progressHead"><span><strong>Current progress</strong></span><span id="actualProgressText">16 / 51 • 31%</span></div>
+<div class="progressHead"><span><strong>Current progress — clock</strong></span><span id="actualProgressText">16 / 51 • 31%</span></div>
 <div class="progress"><div id="bar" class="bar"></div></div>
 </div>
 <div class="progressBlock">
-<div class="progressHead"><span><strong>Expected progress</strong></span><span id="expectedProgressText">—</span></div>
+<div class="progressHead"><span><strong>Expected progress — clock</strong></span><span id="expectedProgressText">—</span></div>
 <div class="progress"><div id="expectedBar" class="expectedBar"></div></div>
 <div id="progressGap" class="gapNote"></div>
 </div>
@@ -72,7 +72,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 5px;
 <button id="reset" type="button">Reset all progress</button>
 </section>
 
-<div class="footer">Both progress bars are compared at the same current clock time: yellow is your actual completed paaths, blue is the expected count by that time on the planned 16-hour schedule.</div>
+<div class="footer">Both bars use the same live clock time. Yellow is what you have actually completed by now; blue is what the 16-hour plan expects by now. Current average and estimated finish also use real elapsed clock time.</div>
 </div>
 
 <script>
@@ -85,14 +85,17 @@ const $=id=>document.getElementById(id),sum=a=>a.reduce((x,y)=>x+y,0),total=()=>
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
 function fmt(d){return new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit"}).format(d)}
 function finish(rate){const left=Math.max(0,TARGET-total());if(left===0)return"Completed";if(!(rate>0))return"—";return fmt(new Date(Date.now()+(left/rate)*3600000))}
+function elapsedClockHours(){
+  return Math.max(0,(Date.now()-PLAN_START.getTime())/3600000);
+}
 function expectedNow(){
-  const elapsed=Math.max(0,(Date.now()-PLAN_START.getTime())/3600000);
+  const elapsed=elapsedClockHours();
   const expected=Math.min(TARGET,requiredRate*elapsed);
   return expected;
 }
 function paceByClock(actual,expected){if(actual===0)return["Pace: Not started yet.",""];if(expected<=0)return["Pace: Good.","good"];const r=actual/expected;if(r>=1.10)return["Pace: Fast — ahead of the clock-based target.","good"];if(r>=1)return["Pace: Good — on or ahead of the clock-based target.","good"];if(r>=.90)return["Pace: Slightly behind the clock-based target, but close.","warn"];if(r>=.75)return["Pace: A little slow compared with the clock-based target.","warn"];return["Pace: Slow compared with the clock-based target.","bad"]}
 function render(){
-const t=total(),h=hours(),rate=h?t/h:0;
+const t=total(),clockHours=elapsedClockHours(),rate=clockHours?t/clockHours:0;
 $("total").textContent=t;$("remaining").textContent=`${Math.max(0,TARGET-t)} remaining`;$("bar").style.width=`${Math.min(100,100*t/TARGET)}%`;$("phaseLabel").textContent=`Phase ${state.activePhase} in progress`;
 const exp=expectedNow(),expPct=Math.min(100,100*exp/TARGET),actPct=Math.min(100,100*t/TARGET),gap=t-exp;
 const nowText=fmt(new Date());
@@ -100,7 +103,7 @@ $("actualProgressText").textContent=`${t} / 51 • ${actPct.toFixed(0)}% • ${n
 $("expectedBar").style.width=`${expPct}%`;
 $("expectedProgressText").textContent=`${exp.toFixed(1)} / 51 • ${expPct.toFixed(0)}% • ${nowText}`;
 $("progressGap").textContent=Math.abs(gap)<0.5?`At ${nowText}, you are essentially on the expected line.`:gap>0?`At ${nowText}, you are ${gap.toFixed(1)} paaths ahead of expected progress.`:`At ${nowText}, you are ${Math.abs(gap).toFixed(1)} paaths behind expected progress.`;
-$("currentAvg").textContent=`${rate.toFixed(2)} / hour`;$("requiredAvg").textContent=`${requiredRate.toFixed(2)} / hour`;$("estimatedFinish").textContent=finish(rate);$("requiredFinish").textContent=finish(requiredRate);$("tableTotal").textContent=`${t} / 51`;
+$("currentAvg").textContent=`${rate.toFixed(2)} / hour`;$("requiredAvg").textContent=`${requiredRate.toFixed(2)} / hour`;$("estimatedFinish").textContent=finish(rate);$("requiredFinish").textContent=fmt(new Date(PLAN_START.getTime()+PLAN_HOURS*3600000));$("tableTotal").textContent=`${t} / 51`;
 const p=paceByClock(t,exp);$("pace").textContent=p[0];$("pace").className=`pace ${p[1]}`;
 const tb=$("phaseTable");tb.replaceChildren();
 for(let i=0;i<4;i++){let s,c;if(i+1<state.activePhase){s="Ended";c="dim"}else if(i+1===state.activePhase){s="🟢 In progress";c="active"}else{s="Not started";c="dim"}const tr=document.createElement("tr");[`Phase ${i+1}`,`${durations[i]} h`,String(state.counts[i]),s].forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===2)td.style.fontWeight="700";if(j===3)td.className=c;tr.appendChild(td)});tb.appendChild(tr)}
