@@ -1,4 +1,4 @@
-const CACHE="japji-paath-v3";
+const CACHE="japji-paath-v4";
 const ASSETS=["./","./index.html","./manifest.webmanifest"];
 self.addEventListener("install",e=>{
   e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
