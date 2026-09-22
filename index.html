@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b1020">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="51 Paath">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>Japji Sahib — 51 Paath</title>
+<style>
+:root{--bg:#0b1020;--panel:#131a2b;--panel2:#182136;--text:#f7f8fb;--muted:#aab3c5;--line:#28334c;--accent:#f5b942;--good:#46c37b;--warn:#f1c75b;--bad:#ef6a6a}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100vh;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:linear-gradient(180deg,#0b1020,#0d1426 45%,#0b1020);-webkit-tap-highlight-color:transparent}
+.wrap{max-width:760px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom))}
+h1{font-size:25px;margin:4px 0;text-align:center}.sub{color:var(--muted);text-align:center;margin:0 0 16px;font-size:13px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:13px}
+.top{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap}.count{font-size:54px;font-weight:800;line-height:1}.small{font-size:14px;color:var(--muted)}
+.progress{height:12px;background:#202a42;border-radius:999px;overflow:hidden;margin-top:14px}.bar{height:100%;background:var(--accent);width:0;transition:width .15s ease}
+.controls{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:14px}
+button{appearance:none;border:none;min-height:54px;border-radius:14px;font:inherit;font-size:18px;font-weight:750;touch-action:manipulation}
+#add{background:var(--accent);color:#17120a}#undo,.phaseBtn,#reset{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button:active{transform:scale(.985)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:12px;min-width:0}
+.label{font-size:12px;color:var(--muted);margin-bottom:5px}.value{font-size:18px;font-weight:750;overflow-wrap:anywhere}.pace{font-weight:700;line-height:1.35}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 5px;border-bottom:1px solid var(--line);text-align:left}th:nth-child(2),td:nth-child(2),th:nth-child(3),td:nth-child(3){text-align:center}.active{color:var(--good);font-weight:700}.dim{color:var(--muted)}
+.phaseGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.phaseBtn{font-size:14px;min-height:46px}.phaseBtn.selected{outline:2px solid var(--accent);outline-offset:1px}
+#reset{width:100%;margin-top:10px;font-size:14px;min-height:46px}.offline{text-align:center;font-size:12px;color:var(--good);margin-bottom:10px}.footer{font-size:12px;color:var(--muted);text-align:center;line-height:1.45}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.phaseGrid{grid-template-columns:repeat(2,1fr)}.count{font-size:48px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Japji Sahib — Target: 51 Paath</h1>
+<p class="sub">Tap +1 after each paath • progress saves automatically</p>
+<div class="offline" id="offline">Offline cache will activate after the first successful load.</div>
+
+<section class="card">
+<div class="top"><div><div class="count"><span id="total">16</span><span class="small"> / 51</span></div><div class="small" id="remaining">35 remaining</div></div><div class="small" id="phaseLabel">Phase 2 in progress</div></div>
+<div class="progress"><div id="bar" class="bar"></div></div>
+<div class="controls"><button id="add" type="button">+1 Paath</button><button id="undo" type="button">Undo</button></div>
+</section>
+
+<section class="card"><div class="grid">
+<div class="stat"><div class="label">Current average</div><div id="currentAvg" class="value">2.67 / hour</div></div>
+<div class="stat"><div class="label">Required average</div><div id="requiredAvg" class="value">3.19 / hour</div></div>
+<div class="stat"><div class="label">Estimated finish time</div><div id="estimatedFinish" class="value">—</div></div>
+<div class="stat"><div class="label">Required finish time</div><div id="requiredFinish" class="value">—</div></div>
+</div></section>
+
+<section class="card"><div id="pace" class="pace"></div></section>
+
+<section class="card">
+<table><thead><tr><th>Phase</th><th>Duration</th><th>Count</th><th>Status</th></tr></thead><tbody id="phaseTable"></tbody><tfoot><tr><th>Total</th><th>16 h</th><th id="tableTotal">16 / 51</th><th></th></tr></tfoot></table>
+</section>
+
+<section class="card">
+<div class="small">Set active phase</div>
+<div class="phaseGrid">
+<button class="phaseBtn" data-phase="1" type="button">Phase 1</button>
+<button class="phaseBtn" data-phase="2" type="button">Phase 2</button>
+<button class="phaseBtn" data-phase="3" type="button">Phase 3</button>
+<button class="phaseBtn" data-phase="4" type="button">Phase 4</button>
+</div>
+<button id="reset" type="button">Reset all progress</button>
+</section>
+
+<div class="footer">Current average uses all scheduled hours through the active phase. Phase durations may include breaks.</div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const TARGET=51,durations=[2,4,8,2],requiredRate=TARGET/16,KEY="japji-51-paath-v3";
+let state={counts:[0,16,0,0],activePhase:2};
+try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&Array.isArray(x.counts)&&x.counts.length===4&&x.activePhase>=1&&x.activePhase<=4)state={counts:x.counts.map(n=>Math.max(0,Number(n)||0)),activePhase:Number(x.activePhase)}}catch(e){}
+const $=id=>document.getElementById(id),sum=a=>a.reduce((x,y)=>x+y,0),total=()=>sum(state.counts),hours=()=>sum(durations.slice(0,state.activePhase));
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
+function fmt(d){return new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit"}).format(d)}
+function finish(rate){const left=Math.max(0,TARGET-total());if(left===0)return"Completed";if(!(rate>0))return"—";return fmt(new Date(Date.now()+(left/rate)*3600000))}
+function pace(rate){if(total()===0)return["Pace: Not started yet.",""];const r=rate/requiredRate;if(r>=1.15)return["Pace: Very fast — comfortably ahead of the required pace.","good"];if(r>=1)return["Pace: Good — at or above the required pace.","good"];if(r>=.85)return["Pace: Slightly behind, but close. Considering breaks, this is solid progress.","warn"];if(r>=.70)return["Pace: A little slow, but improving. You may need to speed up later.","warn"];return["Pace: Slow compared with the overall target. You will need a stronger pace later.","bad"]}
+function render(){
+const t=total(),h=hours(),rate=h?t/h:0;
+$("total").textContent=t;$("remaining").textContent=`${Math.max(0,TARGET-t)} remaining`;$("bar").style.width=`${Math.min(100,100*t/TARGET)}%`;$("phaseLabel").textContent=`Phase ${state.activePhase} in progress`;
+$("currentAvg").textContent=`${rate.toFixed(2)} / hour`;$("requiredAvg").textContent=`${requiredRate.toFixed(2)} / hour`;$("estimatedFinish").textContent=finish(rate);$("requiredFinish").textContent=finish(requiredRate);$("tableTotal").textContent=`${t} / 51`;
+const p=pace(rate);$("pace").textContent=p[0];$("pace").className=`pace ${p[1]}`;
+const tb=$("phaseTable");tb.replaceChildren();
+for(let i=0;i<4;i++){let s,c;if(i+1<state.activePhase){s="Ended";c="dim"}else if(i+1===state.activePhase){s="🟢 In progress";c="active"}else{s="Not started";c="dim"}const tr=document.createElement("tr");[`Phase ${i+1}`,`${durations[i]} h`,String(state.counts[i]),s].forEach((v,j)=>{const td=document.createElement("td");td.textContent=v;if(j===2)td.style.fontWeight="700";if(j===3)td.className=c;tr.appendChild(td)});tb.appendChild(tr)}
+document.querySelectorAll(".phaseBtn").forEach(b=>b.classList.toggle("selected",Number(b.dataset.phase)===state.activePhase));save()
+}
+$("add").addEventListener("click",()=>{if(total()<TARGET){state.counts[state.activePhase-1]++;render()}});
+$("undo").addEventListener("click",()=>{if(state.counts[state.activePhase-1]>0){state.counts[state.activePhase-1]--;render()}});
+document.querySelectorAll(".phaseBtn").forEach(b=>b.addEventListener("click",()=>{state.activePhase=Number(b.dataset.phase);render()}));
+$("reset").addEventListener("click",()=>{if(confirm("Reset all counts to 0?")){state={counts:[0,0,0,0],activePhase:1};render()}});
+if("serviceWorker"in navigator){window.addEventListener("load",async()=>{try{await navigator.serviceWorker.register("./sw.js");$("offline").textContent="Offline mode ready ✓"}catch(e){$("offline").textContent="Open once online; offline mode will activate automatically."}})}
+render();setInterval(render,30000);
+})();
+</script>
+</body>
+</html>
