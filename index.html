@@ -16,7 +16,7 @@
 h1{font-size:25px;margin:4px 0;text-align:center}.sub{color:var(--muted);text-align:center;margin:0 0 16px;font-size:13px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:13px}
 .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap}.count{font-size:54px;font-weight:800;line-height:1}.small{font-size:14px;color:var(--muted)}
-.progress{height:12px;background:#202a42;border-radius:999px;overflow:hidden;margin-top:14px}.bar{height:100%;background:var(--accent);width:0;transition:width .15s ease}
+.progressBlock{margin-top:14px}.progressHead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:6px;font-size:12px;color:var(--muted)}.progressHead strong{color:var(--text);font-weight:700}.progress{height:12px;background:#202a42;border-radius:999px;overflow:hidden}.bar{height:100%;background:var(--accent);width:0;transition:width .15s ease}.expectedBar{height:100%;background:#66a3ff;width:0;transition:width .15s ease}.gapNote{font-size:12px;color:var(--muted);margin-top:8px}
 .controls{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-top:14px}
 button{appearance:none;border:none;min-height:54px;border-radius:14px;font:inherit;font-size:18px;font-weight:750;touch-action:manipulation}
 #add{background:var(--accent);color:#17120a}#undo,.phaseBtn,#reset{background:var(--panel2);color:var(--text);border:1px solid var(--line)}button:active{transform:scale(.985)}
@@ -36,7 +36,15 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 5px;
 
 <section class="card">
 <div class="top"><div><div class="count"><span id="total">16</span><span class="small"> / 51</span></div><div class="small" id="remaining">35 remaining</div></div><div class="small" id="phaseLabel">Phase 2 in progress</div></div>
+<div class="progressBlock">
+<div class="progressHead"><span><strong>Your progress</strong></span><span id="actualProgressText">16 / 51 • 31%</span></div>
 <div class="progress"><div id="bar" class="bar"></div></div>
+</div>
+<div class="progressBlock">
+<div class="progressHead"><span><strong>Expected by now</strong></span><span id="expectedProgressText">—</span></div>
+<div class="progress"><div id="expectedBar" class="expectedBar"></div></div>
+<div id="progressGap" class="gapNote"></div>
+</div>
 <div class="controls"><button id="add" type="button">+1 Paath</button><button id="undo" type="button">Undo</button></div>
 </section>
 
@@ -64,23 +72,33 @@ table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px 5px;
 <button id="reset" type="button">Reset all progress</button>
 </section>
 
-<div class="footer">Current average uses all scheduled hours through the active phase. Phase durations may include breaks.</div>
+<div class="footer">Current average uses all scheduled hours through the active phase. The blue “Expected by now” bar follows the planned 16-hour session clock; breaks can make the time-based comparison look temporarily behind.</div>
 </div>
 
 <script>
 (() => {
 "use strict";
-const TARGET=51,durations=[2,4,8,2],requiredRate=TARGET/16,KEY="japji-51-paath-v3";
+const TARGET=51,durations=[2,4,8,2],requiredRate=TARGET/16,KEY="japji-51-paath-v3",PLAN_START=new Date("2026-09-22T00:45:00+01:00"),PLAN_HOURS=16;
 let state={counts:[0,16,0,0],activePhase:2};
 try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&Array.isArray(x.counts)&&x.counts.length===4&&x.activePhase>=1&&x.activePhase<=4)state={counts:x.counts.map(n=>Math.max(0,Number(n)||0)),activePhase:Number(x.activePhase)}}catch(e){}
 const $=id=>document.getElementById(id),sum=a=>a.reduce((x,y)=>x+y,0),total=()=>sum(state.counts),hours=()=>sum(durations.slice(0,state.activePhase));
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}}
 function fmt(d){return new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit"}).format(d)}
 function finish(rate){const left=Math.max(0,TARGET-total());if(left===0)return"Completed";if(!(rate>0))return"—";return fmt(new Date(Date.now()+(left/rate)*3600000))}
+function expectedNow(){
+  const elapsed=Math.max(0,(Date.now()-PLAN_START.getTime())/3600000);
+  const expected=Math.min(TARGET,requiredRate*elapsed);
+  return expected;
+}
 function pace(rate){if(total()===0)return["Pace: Not started yet.",""];const r=rate/requiredRate;if(r>=1.15)return["Pace: Very fast — comfortably ahead of the required pace.","good"];if(r>=1)return["Pace: Good — at or above the required pace.","good"];if(r>=.85)return["Pace: Slightly behind, but close. Considering breaks, this is solid progress.","warn"];if(r>=.70)return["Pace: A little slow, but improving. You may need to speed up later.","warn"];return["Pace: Slow compared with the overall target. You will need a stronger pace later.","bad"]}
 function render(){
 const t=total(),h=hours(),rate=h?t/h:0;
 $("total").textContent=t;$("remaining").textContent=`${Math.max(0,TARGET-t)} remaining`;$("bar").style.width=`${Math.min(100,100*t/TARGET)}%`;$("phaseLabel").textContent=`Phase ${state.activePhase} in progress`;
+const exp=expectedNow(),expPct=Math.min(100,100*exp/TARGET),actPct=Math.min(100,100*t/TARGET),gap=t-exp;
+$("actualProgressText").textContent=`${t} / 51 • ${actPct.toFixed(0)}%`;
+$("expectedBar").style.width=`${expPct}%`;
+$("expectedProgressText").textContent=`${exp.toFixed(1)} / 51 • ${expPct.toFixed(0)}%`;
+$("progressGap").textContent=Math.abs(gap)<0.5?"You are essentially on the expected line right now.":gap>0?`You are ${gap.toFixed(1)} paaths ahead of the time-based target.`:`You are ${Math.abs(gap).toFixed(1)} paaths behind the time-based target.`;
 $("currentAvg").textContent=`${rate.toFixed(2)} / hour`;$("requiredAvg").textContent=`${requiredRate.toFixed(2)} / hour`;$("estimatedFinish").textContent=finish(rate);$("requiredFinish").textContent=finish(requiredRate);$("tableTotal").textContent=`${t} / 51`;
 const p=pace(rate);$("pace").textContent=p[0];$("pace").className=`pace ${p[1]}`;
 const tb=$("phaseTable");tb.replaceChildren();
